@@ -12,6 +12,7 @@ target_link_libraries(${DEFAULT_TARGET} PRIVATE
   FreeRTOS-Kernel
   FreeRTOS-Kernel-Heap4
   TKJHAT_SDK
+  usb_serial_debug
 )
 
 pico_enable_stdio_usb(${DEFAULT_TARGET} 1)
