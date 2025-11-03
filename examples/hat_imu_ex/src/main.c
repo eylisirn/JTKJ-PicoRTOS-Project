@@ -13,17 +13,19 @@
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
-    float gx, gy, gz;
+    float ax, ay, az, gx, gy, gz, t;
     // Setting up the sensor. 
     if (init_ICM42670() == 0) {
         printf("ICM-42670P initialized successfully!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            printf("ICM-42670P could not initialize gyroscope");
+            printf("ICM-42670P could not initialize accelerometer or gyroscope");
         }
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
         printf ("Enable gyro: %d\n",_enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
         printf ("Gyro return:  %d\n", _gyro);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+        printf ("Accel return:  %d\n", _accel);
     }
     else {
         printf("Failed to initialize ICM-42670P.\n");
@@ -31,9 +33,9 @@ void imu_task(void* pvParameters) {
     // Start collection data here. Infinite loop. 
     while (1)
     {
-        if (ICM42670_read_sensor_data(&gx, &gy, &gz) == 0) {
+        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
 
-            printf("Gyro: X=%f, Y=%f, Z=%f\n",gx, gy, gz);
+            printf("Gyro: X=%f, Y=%f, Z=%f\n", ax, ay, az, gx, gy, gz, t);
 
         }
         else {
@@ -62,7 +64,7 @@ int main() {
 
     TaskHandle_t hIMUTask = NULL;
 
-    xTaskCreate(imu_task, "IMUTask", 4096, NULL, 2, &hIMUTask);
+    xTaskCreate(imu_task, "IMUTask", 1024, NULL, 2, &hIMUTask);
 
     // Start the FreeRTOS scheduler
     vTaskStartScheduler();
