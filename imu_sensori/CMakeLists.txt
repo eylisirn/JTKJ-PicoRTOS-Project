@@ -2,7 +2,7 @@
 
 
 set(DEFAULT_TARGET imu_sensori)
-add_executable($imu_sensori
+add_executable(imu_sensori
    src/main.c
 )
 
