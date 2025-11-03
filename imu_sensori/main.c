@@ -8,6 +8,8 @@
 
 #include <tkjhat/sdk.h>
 
+#define I2C_PORT i2c0
+
 void imu_task(void *pvParameters) {
     (void)pvParameters;
     
