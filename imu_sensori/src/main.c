@@ -47,22 +47,22 @@ void imu_task(void *pvParameters) {
 int main() {
     stdio_init_all();
     // Uncomment this lines if you want to wait till the serial monitor is connected
-    while (!stdio_usb_connected()){
+    /*while (!stdio_usb_connected()) {
         sleep_ms(10);
-    }
+    }*/
     //i2c_init(I2C_PORT, 400 * 1000);
     //gpio_set_function(12, GPIO_FUNC_I2C);
     //gpio_set_function(13, GPIO_FUNC_I2C);
     //gpio_pull_up(12);
     //gpio_pull_up(13);
-    //1init_hat_sdk();
+    init_hat_sdk();
     sleep_ms(300); // Wait some time so initialization of USB and hat is done.
     init_led();
     printf("Start acceleration test\n");
 
     TaskHandle_t hIMUTask = NULL;
 
-    xTaskCreate(imu_task, "IMUTask", 1024, NULL, 2, &hIMUTask);
+    xTaskCreate(imu_task, "IMUTask", 4096, NULL, 2, &hIMUTask);
 
     // Start the FreeRTOS scheduler
     vTaskStartScheduler();

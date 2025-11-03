@@ -1,7 +1,16 @@
 {
   "ExpandedNodes": [
-    ""
+    "",
+    "\\examples",
+    "\\examples\\hat_example\\src",
+    "\\examples\\hat_imu_cdc_ex",
+    "\\examples\\hat_imu_ex",
+    "\\examples\\hello_blink\\src",
+    "\\examples\\hello_hat\\src",
+    "\\imu_sensori",
+    "\\imu_sensori\\src",
+    "\\src"
   ],
-  "SelectedNode": "\\C:\\Users\\User\\Source\\Repos\\JTKJ-PicoRTOS-Project",
+  "SelectedNode": "\\examples\\hat_imu_ex\\src\\main.c",
   "PreviewInSolutionExplorer": false
 }
