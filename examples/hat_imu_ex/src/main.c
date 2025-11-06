@@ -27,6 +27,9 @@ void imu_task(void* pvParameters) {
     else {
         printf("Failed to initialize ICM-42670P.\n");
     }
+    const uint LED_PIN = 25; // LED-asetelme
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
     while (1) {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
             // Keskitä orientaatio
