@@ -27,40 +27,17 @@ void imu_task(void* pvParameters) {
     else {
         printf("Failed to initialize ICM-42670P.\n");
     }
-    const uint LED_PIN = 25; // LED-asetelme
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    while (1) {
+    while (1) // Datan-keräyksen aloitus
+    {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            // Keskitä orientaatio
-            float abs_ax = (ax > 0) ? ax : -ax;
-            float abs_ay = (ay > 0) ? ay : -ay;
-            float abs_az = (az > 0) ? az : -az;
 
-            // Akselin valinta
-            if (abs_az > 7.0 && abs_az > abs_ax && abs_az > abs_ay) {
-                // Z-akseli, Viiva (-)
-                printf("-\n");
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(600));  // Dash = long signal
-                gpio_put(LED_PIN, 0);
-            }
-            else if (abs_ax > 5.0 || abs_ay > 5.0) {
-                // X- tai Y-akseli, Piste (.)
-                printf(".\n");
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                gpio_put(LED_PIN, 0);
-            }
-            else {
-                // Viive
-                vTaskDelay(pdMS_TO_TICKS(100));
-            }
+            printf("Gyro: X=%f, Y=%f, Z=%f\n", gx, gy, gz);
+
         }
         else {
-            printf("IMU-sensorin lukeminen epäonnistui.a\n");
-            vTaskDelay(pdMS_TO_TICKS(200));
+            printf("Failed to read imu data\n");
         }
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -77,7 +54,7 @@ int main() {
     init_hat_sdk();
     sleep_ms(300);
     init_led();
-    printf("Aloita testi\n");
+    printf("Start test\n");
 
     TaskHandle_t hIMUTask = NULL;
 

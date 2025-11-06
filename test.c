@@ -1,4 +1,4 @@
-#include <stdio.h>
+/*#include <stdio.h>
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
@@ -27,6 +27,9 @@ void imu_task(void* pvParameters) {
     else {
         printf("Failed to initialize ICM-42670P.\n");
     }
+    const uint LED_PIN = 25; // LED-asetelme
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
     while (1) {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
             // Keskitä orientaatio
@@ -39,7 +42,7 @@ void imu_task(void* pvParameters) {
                 // Z-akseli, Viiva (-)
                 printf("-\n");
                 gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(600));  // Dash = long signal
+                vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
             }
             else if (abs_ax > 5.0 || abs_ay > 5.0) {
@@ -84,4 +87,4 @@ int main() {
     vTaskStartScheduler();
 
     return 0;
-}
+}*/
