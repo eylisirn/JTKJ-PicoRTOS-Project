@@ -29,7 +29,7 @@ void imu_task(void* pvParameters) {
     }
     while (1) {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            // Keskit√§ orientaatio
+            // Keskit‰ orientaatio
             float abs_ax = (ax > 0) ? ax : -ax;
             float abs_ay = (ay > 0) ? ay : -ay;
             float abs_az = (az > 0) ? az : -az;
@@ -55,7 +55,7 @@ void imu_task(void* pvParameters) {
             }
         }
         else {
-            printf("IMU-sensorin lukeminen ep√§onnistui.a\n");
+            printf("IMU-sensorin lukeminen ep‰onnistui.a\n");
             vTaskDelay(pdMS_TO_TICKS(200));
         }
     }
