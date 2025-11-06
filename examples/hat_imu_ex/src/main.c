@@ -46,7 +46,7 @@ int main() {
     while (!stdio_usb_connected()) {
         sleep_ms(10);
     }
-    i2c_init(I2C_PORT, 400 * 1000); // I2C asetelma
+    i2c_init(i2c0, 400 * 1000); // I2C asetelma
     gpio_set_function(12, GPIO_FUNC_I2C);
     gpio_set_function(13, GPIO_FUNC_I2C);
     gpio_pull_up(12);
