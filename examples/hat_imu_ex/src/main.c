@@ -42,7 +42,6 @@ void imu_task(void* pvParameters) {
             if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
                 // Z-akseli, Viiva (-)
                 clear_display();
-                set_text_cursor(0, 0);
                 write_text("-");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
@@ -51,7 +50,6 @@ void imu_task(void* pvParameters) {
             else if (abs_ax > 0.10 || abs_ay > 0.40) {
                 // X- tai Y-akseli, Piste (.)
                 clear_display();
-                set_text_cursor(0, 0);
                 write_text(".");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
