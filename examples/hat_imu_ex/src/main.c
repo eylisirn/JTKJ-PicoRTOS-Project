@@ -7,6 +7,7 @@
 
 #include <tkjhat/sdk.h>
 
+void init_display(void);
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
@@ -40,14 +41,18 @@ void imu_task(void* pvParameters) {
             // Akselin valinta
             if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
                 // Z-akseli, Viiva (-)
-                printf("-\n");
+                clear_display();
+                set_text_cursor(0, 0);
+                write_text("-");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
             }
             else if (abs_ax > 0.10 || abs_ay > 0.40) {
                 // X- tai Y-akseli, Piste (.)
-                printf(".\n");
+                clear_display();
+                set_text_cursor(0, 0);
+                write_text(".");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 gpio_put(LED_PIN, 0);
@@ -73,10 +78,11 @@ int main() {
     gpio_set_function(12, GPIO_FUNC_I2C);
     gpio_set_function(13, GPIO_FUNC_I2C);
     gpio_pull_up(12);
-    gpio_pull_up(13);
-    init_hat_sdk();
     sleep_ms(300);
     init_led();
+    init_display();
+    clear_display();
+    write_text("Perssilmä");
     printf("Aloita testi\n");
 
     TaskHandle_t hIMUTask = NULL;
