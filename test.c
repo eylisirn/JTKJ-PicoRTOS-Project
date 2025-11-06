@@ -1,4 +1,4 @@
-/*#include <stdio.h>
+#include <stdio.h>
 #include <pico/stdlib.h>
 
 #include <FreeRTOS.h>
@@ -38,14 +38,14 @@ void imu_task(void* pvParameters) {
             float abs_az = (az > 0) ? az : -az;
 
             // Akselin valinta
-            if (abs_az > 7.0 && abs_az > abs_ax && abs_az > abs_ay) {
+            if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
                 // Z-akseli, Viiva (-)
                 printf("-\n");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
             }
-            else if (abs_ax > 5.0 || abs_ay > 5.0) {
+            else if (abs_ax > 0.10 || abs_ay > 0.40) {
                 // X- tai Y-akseli, Piste (.)
                 printf(".\n");
                 gpio_put(LED_PIN, 1);
@@ -87,4 +87,3 @@ int main() {
     vTaskStartScheduler();
 
     return 0;
-}*/
