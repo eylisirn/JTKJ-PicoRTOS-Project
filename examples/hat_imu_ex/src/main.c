@@ -80,7 +80,7 @@ int main() {
     init_led();
     init_display();
     clear_display();
-    write_text("Perssilmä");
+    write_text("Valamista!");
     printf("Aloita testi\n");
 
     TaskHandle_t hIMUTask = NULL;
