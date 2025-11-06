@@ -1,0 +1,21 @@
+{
+    "inputBufferSize": 200,
+    "devices": [
+        {
+            "productId": "bef3",
+            "vendorId": "0451",
+            "name": "Texas Instruments SensorTag"
+        },
+        {
+            "productId": "000a",
+            "vendorId": "2e8a",
+            "name": "Raspberry Pi Pico"
+        },
+        {
+            "productId": "4002",
+            "vendorId": "Cafe",
+            "name": "University of Oulu. TKJHAT."
+        }
+    ]
+}
+
