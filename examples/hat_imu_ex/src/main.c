@@ -21,9 +21,9 @@ void imu_task(void* pvParameters) {
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
         printf("Gyro: %d\n", _enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf("Gyro syöte:  %d\n", _gyro);
+        printf("Gyro syï¿½te:  %d\n", _gyro);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf("Kiihtyvyys syöte:  %d\n", _accel);
+        printf("Kiihtyvyys syï¿½te:  %d\n", _accel);
     }
     else {
         printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
@@ -33,7 +33,7 @@ void imu_task(void* pvParameters) {
     gpio_set_dir(LED_PIN, GPIO_OUT);
     while (1) {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
-            // Keskitä orientaatio
+            // Keskitï¿½ orientaatio
             float abs_ax = (ax > 0) ? ax : -ax;
             float abs_ay = (ay > 0) ? ay : -ay;
             float abs_az = (az > 0) ? az : -az;
@@ -43,7 +43,7 @@ void imu_task(void* pvParameters) {
                 // Z-akseli, Viiva (-)
                 clear_display();
                 write_text("-");
-                putchar_raw(int('-'));
+                putchar_raw((int)'-');
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
@@ -52,7 +52,7 @@ void imu_task(void* pvParameters) {
                 // X- tai Y-akseli, Piste (.)
                 clear_display();
                 write_text(".");
-                putchar_raw(int('.'));
+                putchar_raw((int)'.');
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 gpio_put(LED_PIN, 0);
