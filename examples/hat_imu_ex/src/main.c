@@ -43,7 +43,7 @@ void imu_task(void* pvParameters) {
                 // Z-akseli, Viiva (-)
                 clear_display();
                 write_text("-");
-                putchar_raw("-");
+                putchar_raw(int('-'));
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
@@ -52,7 +52,7 @@ void imu_task(void* pvParameters) {
                 // X- tai Y-akseli, Piste (.)
                 clear_display();
                 write_text(".");
-                putchar_raw(".");
+                putchar_raw(int('.'));
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 gpio_put(LED_PIN, 0);
