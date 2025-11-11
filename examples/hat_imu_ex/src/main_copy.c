@@ -7,37 +7,62 @@
 
 #include <tkjhat/sdk.h>
 
+void init_display(void);
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-    // IMU-sensorin asetelma
+    // IMU-sensorin alustus
     if (init_ICM42670() == 0) {
-        printf("ICM-42670P initialized successfully!\n");
+        printf("Valamista! IMU-sensori alustettiin!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            printf("ICM-42670P could not initialize accelerometer or gyroscope");
+            printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!");
         }
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf("Enable gyro: %d\n", _enablegyro);
+        printf("Gyro: %d\n", _enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf("Gyro return:  %d\n", _gyro);
+        printf("Gyro syöte:  %d\n", _gyro);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf("Accel return:  %d\n", _accel);
+        printf("Kiihtyvyys syöte:  %d\n", _accel);
     }
     else {
-        printf("Failed to initialize ICM-42670P.\n");
+        printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
     }
-    while (1) // Datan-keräyksen aloitus
-    {
+    const uint LED_PIN = 25; // LED-asetelme
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+    while (1) {
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            // Keskitä orientaatio
+            float abs_ax = (ax > 0) ? ax : -ax;
+            float abs_ay = (ay > 0) ? ay : -ay;
+            float abs_az = (az > 0) ? az : -az;
 
-            printf("Gyro: X=%f, Y=%f, Z=%f\n", gx, gy, gz);
-
+            // Akselin valinta
+            if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
+                // Z-akseli, Viiva (-)
+                clear_display();
+                write_text("-");
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(600));
+                gpio_put(LED_PIN, 0);
+            }
+            else if (abs_ax > 0.10 || abs_ay > 0.40) {
+                // X- tai Y-akseli, Piste (.)
+                clear_display();
+                write_text(".");
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                gpio_put(LED_PIN, 0);
+            }
+            else {
+                // Viive
+                vTaskDelay(pdMS_TO_TICKS(100));
+            }
         }
         else {
-            printf("Failed to read imu data\n");
+            vTaskDelay(pdMS_TO_TICKS(200));
         }
-        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }
 
@@ -50,11 +75,12 @@ int main() {
     gpio_set_function(12, GPIO_FUNC_I2C);
     gpio_set_function(13, GPIO_FUNC_I2C);
     gpio_pull_up(12);
-    gpio_pull_up(13);
-    init_hat_sdk();
     sleep_ms(300);
     init_led();
-    printf("Start test\n");
+    init_display();
+    clear_display();
+    write_text("Valamista!");
+    printf("Valamista!\n");
 
     TaskHandle_t hIMUTask = NULL;
 
@@ -64,4 +90,4 @@ int main() {
     vTaskStartScheduler();
 
     return 0;
-}*/
+}*\
