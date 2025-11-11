@@ -6,6 +6,8 @@
 
 #include <tkjhat/sdk.h>   // IMU library header
 
+#define LED_PIN 25
+
 void init_sw1(void) {
     gpio_init(SW1_PIN);
     gpio_set_dir(SW1_PIN, GPIO_IN);
