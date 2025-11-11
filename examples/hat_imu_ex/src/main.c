@@ -43,6 +43,7 @@ void imu_task(void* pvParameters) {
                 // Z-akseli, Viiva (-)
                 clear_display();
                 write_text("-");
+                putchar_raw("-");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(600));
                 gpio_put(LED_PIN, 0);
@@ -51,6 +52,7 @@ void imu_task(void* pvParameters) {
                 // X- tai Y-akseli, Piste (.)
                 clear_display();
                 write_text(".");
+                putchar_raw(".");
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 gpio_put(LED_PIN, 0);
@@ -68,7 +70,7 @@ void imu_task(void* pvParameters) {
 
 int main() {
     stdio_init_all();
-    while (!stdio_usb_connected()) {
+    while (!stdio_usb_connected()) { 
         sleep_ms(10);
     }
     i2c_init(i2c0, 400 * 1000); // I2C asetelma
