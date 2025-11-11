@@ -12,21 +12,21 @@ void imu_task(void* pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
-    // IMU-sensorin asetelma
+    // IMU-sensorin alustus
     if (init_ICM42670() == 0) {
-        printf("ICM-42670P initialized successfully!\n");
+        printf("Valamista! IMU-sensori alustettiin!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            printf("ICM-42670P could not initialize accelerometer or gyroscope");
+            printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!");
         }
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf("Enable gyro: %d\n", _enablegyro);
+        printf("Gyro: %d\n", _enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf("Gyro return:  %d\n", _gyro);
+        printf("Gyro syöte:  %d\n", _gyro);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf("Accel return:  %d\n", _accel);
+        printf("Kiihtyvyys syöte:  %d\n", _accel);
     }
     else {
-        printf("Failed to initialize ICM-42670P.\n");
+        printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
     }
     const uint LED_PIN = 25; // LED-asetelme
     gpio_init(LED_PIN);
@@ -61,7 +61,6 @@ void imu_task(void* pvParameters) {
             }
         }
         else {
-            printf("IMU-sensorin lukeminen epäonnistui.a\n");
             vTaskDelay(pdMS_TO_TICKS(200));
         }
     }
@@ -81,7 +80,7 @@ int main() {
     init_display();
     clear_display();
     write_text("Valamista!");
-    printf("Aloita testi\n");
+    printf("Valamista!\n");
 
     TaskHandle_t hIMUTask = NULL;
 
