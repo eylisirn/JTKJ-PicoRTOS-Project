@@ -2,6 +2,7 @@
 #include "pico/stdlib.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include <math.h>
 
 #include <tkjhat/sdk.h>   // IMU library header
 
