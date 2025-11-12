@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "pico/stdlib.h"
 #include "FreeRTOS.h"
@@ -8,27 +9,44 @@
 // --- Pin configuration ---
 #define LED_PIN     25
 
-// --- Shared flags for buttons ---
+// --- Shared flags ---
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
+volatile bool send_message_flag    = false;
+
+// --- Double-press tracking ---
+static uint32_t last_button2_press_time = 0;
+static bool button2_first_press = false;
+
+// --- Message buffer ---
+#define MESSAGE_BUFFER_SIZE 128
+char message_buffer[MESSAGE_BUFFER_SIZE];
+size_t message_index = 0;
 
 // --- ISR for both buttons ---
 void button_isr(uint gpio, uint32_t events) {
-    static uint32_t last_time1 = 0;
-    static uint32_t last_time2 = 0;
+    static uint32_t last_button1_time = 0;
     uint32_t now = to_ms_since_boot(get_absolute_time());
 
-    if (gpio == BUTTON1 && (now - last_time1 > 200)) {
+    if (gpio == BUTTON1 && (now - last_button1_time > 200)) {
         button1_pressed_flag = true;
-        last_time1 = now;
+        last_button1_time = now;
     } 
-    else if (gpio == BUTTON2 && (now - last_time2 > 200)) {
-        button2_pressed_flag = true;
-        last_time2 = now;
+    else if (gpio == BUTTON2) {
+        if (now - last_button2_press_time < 400 && button2_first_press) {
+            // Detected double-press → send message
+            send_message_flag = true;
+            button2_first_press = false;
+        } else {
+            // Single press → add space
+            button2_first_press = true;
+            button2_pressed_flag = true;
+            last_button2_press_time = now;
+        }
     }
 }
 
-// --- IMU task ---
+// --- IMU + Message Task ---
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
@@ -40,9 +58,15 @@ void imu_task(void* pvParameters) {
         if (ICM42670_start_with_default_values() != 0) {
             printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!\n");
         }
+<<<<<<< HEAD
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+=======
+        ICM42670_enable_accel_gyro_ln_mode();
+        ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+>>>>>>> fc51c962ccce7c3e518746f3e05f011433ed86a7
     } else {
         printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
     }
@@ -64,7 +88,7 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // Always update the display
+            // Always update display
             clear_display();
             if (symbol != '\0') {
                 char text[2] = {symbol, '\0'};
@@ -74,31 +98,65 @@ void imu_task(void* pvParameters) {
             }
         }
 
-        // --- Handle button 1: Send current symbol ---
+        // --- Button 1: Add current symbol ---
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            putchar_raw((int)symbol);
-            fflush(stdout);
+            if (message_index < MESSAGE_BUFFER_SIZE - 1) {
+                message_buffer[message_index++] = symbol;
+                message_buffer[message_index] = '\0';
+                printf("Added symbol: %c (buffer: %s)\n", symbol, message_buffer);
+            }
 
             gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(150));
+            vTaskDelay(pdMS_TO_TICKS(100));
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Handle button 2: Send space ---
+        // --- Button 2: Add space ---
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
-            putchar_raw((int)' ');
-            fflush(stdout);
+            if (message_index < MESSAGE_BUFFER_SIZE - 1) {
+                message_buffer[message_index++] = ' ';
+                message_buffer[message_index] = '\0';
+                printf("%c\n", message_buffer);
+            }
 
-            // Double flash to indicate space
+            // LED double blink for space
             for (int i = 0; i < 2; i++) {
                 gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(80));
                 gpio_put(LED_PIN, 0);
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(80));
+            }
+        }
+
+        // --- Double-press (send message) ---
+        if (send_message_flag) {
+            send_message_flag = false;
+
+            if (message_index > 0) {
+                printf("%s  \n", message_buffer);
+
+                // Send buffer as a single block with newline
+                fwrite(message_buffer, 1, message_index, stdout);
+                putchar_raw('\n');
+                fflush(stdout);
+
+                // LED triple blink for send
+                for (int i = 0; i < 3; i++) {
+                    gpio_put(LED_PIN, 1);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    gpio_put(LED_PIN, 0);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                }
+
+                // Clear buffer
+                message_index = 0;
+                message_buffer[0] = '\0';
+            } else {
+                printf("(Buffer empty, nothing to send)\n");
             }
         }
 
@@ -118,12 +176,13 @@ int main() {
     // --- Configure buttons ---
     gpio_init(BUTTON1);
     gpio_set_dir(BUTTON1, GPIO_IN);
-    gpio_pull_up(BUTTON1);  // active-low
+    gpio_pull_up(BUTTON1);
+
     gpio_init(BUTTON2);
     gpio_set_dir(BUTTON2, GPIO_IN);
     gpio_pull_up(BUTTON2);
 
-    // Attach interrupts
+    // Register interrupts
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     gpio_set_irq_enabled(BUTTON2, GPIO_IRQ_EDGE_FALL, true);
 
@@ -141,11 +200,10 @@ int main() {
     write_text("Valamista!");
     printf("Valamista!\n");
 
-    // --- Start IMU FreeRTOS task ---
+    // --- Start IMU task ---
     TaskHandle_t hIMUTask = NULL;
     xTaskCreate(imu_task, "IMUTask", 2048, NULL, 2, &hIMUTask);
 
     vTaskStartScheduler();
-
     return 0;
 }
