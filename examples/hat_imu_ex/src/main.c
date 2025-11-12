@@ -21,10 +21,14 @@ void button_isr(uint gpio, uint32_t events) {
     if (gpio == BUTTON1 && (now - last_time1 > 200)) {
         button1_pressed_flag = true;
         last_time1 = now;
+        clear_display();
+        write_text("Läks!");
     } 
     else if (gpio == BUTTON2 && (now - last_time2 > 200)) {
         button2_pressed_flag = true;
         last_time2 = now;
+        clear_display();
+        write_text("Läks!");
     }
 }
 
