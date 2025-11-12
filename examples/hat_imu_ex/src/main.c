@@ -41,11 +41,8 @@ void imu_task(void* pvParameters) {
             printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!\n");
         }
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf("Gyro: %d\n", _enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf("Gyro syöte: %d\n", _gyro);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf("Kiihtyvyys syöte: %d\n", _accel);
     } else {
         printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
     }
