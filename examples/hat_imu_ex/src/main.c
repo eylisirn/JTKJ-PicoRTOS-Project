@@ -61,6 +61,11 @@ void imu_task(void* pvParameters) {
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+=======
+        ICM42670_enable_accel_gyro_ln_mode();
+        ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+>>>>>>> fc51c962ccce7c3e518746f3e05f011433ed86a7
     } else {
         printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
     }
@@ -114,7 +119,7 @@ void imu_task(void* pvParameters) {
             if (message_index < MESSAGE_BUFFER_SIZE - 1) {
                 message_buffer[message_index++] = ' ';
                 message_buffer[message_index] = '\0';
-                printf("%c\n", ".- .- .- .-");
+                printf("%c\n", ".- .- .- .-";
             }
 
             // LED double blink for space
