@@ -114,7 +114,7 @@ void imu_task(void* pvParameters) {
             if (message_index < MESSAGE_BUFFER_SIZE - 1) {
                 message_buffer[message_index++] = ' ';
                 message_buffer[message_index] = '\0';
-                printf("%c\n", message_buffer);
+                printf("%c\n", ".- .- .- .-";
             }
 
             // LED double blink for space
