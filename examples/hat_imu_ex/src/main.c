@@ -114,7 +114,7 @@ void imu_task(void* pvParameters) {
             if (message_index < MESSAGE_BUFFER_SIZE - 1) {
                 message_buffer[message_index++] = ' ';
                 message_buffer[message_index] = '\0';
-                printf(message_buffer\n);
+                printf("%s\n", message_buffer);
             }
 
             // LED double blink for space
@@ -131,7 +131,7 @@ void imu_task(void* pvParameters) {
             send_message_flag = false;
 
             if (message_index > 0) {
-                printf("Sending: %s\n", message_buffer);
+                printf("%s\n", message_buffer);
 
                 // Send buffer as a single block with newline
                 fwrite(message_buffer, 1, message_index, stdout);
