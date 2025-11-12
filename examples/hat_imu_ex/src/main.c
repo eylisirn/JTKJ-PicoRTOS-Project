@@ -3,12 +3,10 @@
 #include "pico/stdlib.h"
 #include "FreeRTOS.h"
 #include "task.h"
-#include "ICM42670.h"
 #include "tkjhat/sdk.h"
 
 // --- Pin configuration ---
 #define LED_PIN     25
-#define BUTTON1     2   // GPIO2 (change if using another pin)
 
 // --- Shared flag between interrupt and task ---
 volatile bool button_pressed_flag = false;
