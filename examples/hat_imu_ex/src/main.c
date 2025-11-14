@@ -8,6 +8,10 @@
 
 int main() {
     stdio_init_all();
+    while (!stdio_usb_connected()) {
+        sleep_ms(10);
+    }
+    stdio_init_all();
     sleep_ms(500);
 
     gpio_init(BUTTON_PIN);
@@ -21,6 +25,7 @@ int main() {
     while (1) {
         if (!gpio_get(BUTTON_PIN)) {
             printf("%s", morse);
+            fflush(stdout);
             sleep_ms(300);
             while (!gpio_get(BUTTON_PIN));
         }
