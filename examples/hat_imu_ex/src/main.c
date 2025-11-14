@@ -84,7 +84,7 @@ void imu_task(void* pvParameters) {
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            printf("%c\n", symbol);
+            printf("%c  \n", symbol);
             fflush(stdout);
 
             gpio_put(LED_PIN, 1);
