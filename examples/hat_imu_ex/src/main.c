@@ -6,6 +6,8 @@
 #include "task.h"
 #include "tkjhat/sdk.h"
 
+#define BUTTON_PIN 2
+
 int main() {
     stdio_init_all();
     while (!stdio_usb_connected()) {
