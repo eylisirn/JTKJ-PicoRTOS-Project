@@ -78,14 +78,6 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // --- Append symbol to buffer ---
-            if (symbol != '\0') {
-                if (morse_index < MORSE_BUFFER_SIZE - 1) {
-                    morse_buffer[morse_index++] = symbol;
-                    morse_buffer[morse_index] = '\0';
-                }
-            }
-
             // --- Update display ---
             clear_display();
             if (morse_index > 0) {
