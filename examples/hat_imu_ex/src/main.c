@@ -104,44 +104,48 @@ void imu_task(void* pvParameters) {
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Button 2: single press adds space, double press sends buffer ---
-        static uint32_t last_button2_press_time = 0;
-        static uint8_t button2_press_count = 0;
-        const uint32_t DOUBLE_PRESS_INTERVAL = 500; // ms
+        // --- Button 2 handling: short press adds space, long press sends buffer ---
+        static uint32_t button2_press_time = 0;
 
-        if (button2_pressed_flag) {
-            button2_pressed_flag = false;
-
-            uint32_t now = to_ms_since_boot(get_absolute_time());
-
-            // Check time since last press
-            if (now - last_button2_press_time <= DOUBLE_PRESS_INTERVAL) {
-                button2_press_count++;
+        // Check if Button 2 is currently pressed (active-low)
+        if (gpio_get(BUTTON2) == 0) {
+            if (button2_press_time == 0) {
+                // Record the time when button was first pressed
+                button2_press_time = to_ms_since_boot(get_absolute_time());
             }
-            else {
-                button2_press_count = 1; // new sequence
-            }
-            last_button2_press_time = now;
+        }
+        // Button 2 released
+        else if (button2_press_time != 0) {
+            uint32_t press_duration = to_ms_since_boot(get_absolute_time()) - button2_press_time;
+            button2_press_time = 0;
 
-            if (button2_press_count == 2) {
-                // --- Double press detected: send buffer ---
+            if (press_duration >= 1000) {
+                // --- Long press: send entire buffer ---
                 if (morse_index > 0) {
-                    printf("%s  \n", morse_buffer);
+                    printf("%s \n", morse_buffer); // preserve space before \n
                     fflush(stdout);
 
                     // LED feedback
                     gpio_put(LED_PIN, 1);
-                    vTaskDelay(pdMS_TO_TICKS(200));
+                    vTaskDelay(pdMS_TO_TICKS(500));
                     gpio_put(LED_PIN, 0);
 
                     // Clear buffer
                     morse_index = 0;
                     morse_buffer[0] = '\0';
                 }
-                button2_press_count = 0; // reset counter after sending
             }
             else {
-                vTaskDelay(pdMS_TO_TICKS(200));
+                // --- Short press: add space to buffer ---
+                if (morse_index < MORSE_BUFFER_SIZE - 1) {
+                    morse_buffer[morse_index++] = ' ';
+                    morse_buffer[morse_index] = '\0';
+                }
+
+                // LED feedback
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(100));
+                gpio_put(LED_PIN, 0);
             }
         }
     }
