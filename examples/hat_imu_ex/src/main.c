@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <string.h>
+#include <math.h>
 #include "pico/stdlib.h"
-#include "hardware/gpio.h"
-
-#define BUTTON_PIN 2
+#include "FreeRTOS.h"
+#include "task.h"
+#include "tkjhat/sdk.h"
 
 int main() {
     stdio_init_all();
