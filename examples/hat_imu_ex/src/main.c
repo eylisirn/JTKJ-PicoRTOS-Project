@@ -177,7 +177,7 @@ int main() {
 
     // Attach interrupts
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_isr);
-    gpio_set_irq_enabled(BUTTON2, GPIO_IRQ_EDGE_FALL, true);
+    gpio_set_irq_enabled_with_callback(BUTTON2, GPIO_IRQ_EDGE_FALL, true, &button_isr);
 
     // --- Initialize I2C and display ---
     i2c_init(i2c0, 400 * 1000);
