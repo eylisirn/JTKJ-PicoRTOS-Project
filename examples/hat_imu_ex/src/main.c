@@ -116,7 +116,6 @@ void imu_task(void* pvParameters) {
             button2_pressed_flag = false;
 
             if (message_index < MESSAGE_BUFFER_SIZE - 1) {
-                message_buffer[message_index++] = '';
                 message_buffer[message_index] = '\0';
                 printf("%c\n", " ");
             }
