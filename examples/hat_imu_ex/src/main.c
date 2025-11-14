@@ -122,7 +122,7 @@ void imu_task(void* pvParameters) {
             if (press_duration >= 1000) {
                 // --- Long press: send entire buffer ---
                 if (morse_index > 0) {
-                    printf("%s\n", morse_buffer);
+                    printf("%s  \n", morse_buffer);
                     fflush(stdout);
 
                     // LED feedback
