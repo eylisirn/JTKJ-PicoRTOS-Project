@@ -157,6 +157,7 @@ void imu_task(void* pvParameters) {
             }
         }
     }
+}
 
 // --- Main entry point ---
 int main() {
