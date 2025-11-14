@@ -114,19 +114,19 @@ void imu_task(void* pvParameters) {
 
             uint32_t now = to_ms_since_boot(get_absolute_time());
 
-            // Check if this press is within the double-press interval
+            // Check time since last press
             if (now - last_button2_press_time <= DOUBLE_PRESS_INTERVAL) {
                 button2_press_count++;
             }
             else {
-                button2_press_count = 1;
+                button2_press_count = 1; // new sequence
             }
             last_button2_press_time = now;
 
             if (button2_press_count == 2) {
-                // --- Double press: send buffer ---
+                // --- Double press detected: send buffer ---
                 if (morse_index > 0) {
-                    printf("%s\n", morse_buffer);
+                    printf("%s  \n", morse_buffer);
                     fflush(stdout);
 
                     // LED feedback
@@ -138,19 +138,10 @@ void imu_task(void* pvParameters) {
                     morse_index = 0;
                     morse_buffer[0] = '\0';
                 }
-                button2_press_count = 0; // reset
+                button2_press_count = 0; // reset counter after sending
             }
             else {
-                // --- Single press: add space to buffer ---
-                if (morse_index < MORSE_BUFFER_SIZE - 1) {
-                    morse_buffer[morse_index++] = ' ';
-                    morse_buffer[morse_index] = '\0';
-                }
-
-                // LED feedback
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(100));
-                gpio_put(LED_PIN, 0);
+                vTaskDelay(pdMS_TO_TICKS(200));
             }
         }
     }
