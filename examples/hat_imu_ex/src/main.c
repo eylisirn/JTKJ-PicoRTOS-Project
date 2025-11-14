@@ -12,6 +12,11 @@
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
 
+// -- Morse buffer
+#define MORSE_BUFFER_SIZE 64
+char morse_buffer[MORSE_BUFFER_SIZE];
+uint8_t morse_index = 0;
+
 // --- ISR for both buttons ---
 void button_isr(uint gpio, uint32_t events) {
     static uint32_t last_time1 = 0;
@@ -27,6 +32,7 @@ void button_isr(uint gpio, uint32_t events) {
         last_time2 = now;
     }
 }
+
 
 // --- IMU task ---
 void imu_task(void* pvParameters) {
@@ -69,11 +75,18 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // Always update the display
-            clear_display();
+            // --- Append symbol to buffer ---
             if (symbol != '\0') {
-                char text[2] = { symbol, '\0' };
-                write_text(text);
+                if (morse_index < MORSE_BUFFER_SIZE - 1) {
+                    morse_buffer[morse_index++] = symbol;
+                    morse_buffer[morse_index] = '\0';
+                }
+            }
+
+            // --- Update display ---
+            clear_display();
+            if (morse_index > 0) {
+                write_text(morse_buffer);
             }
             else {
                 write_text(" ");
@@ -92,25 +105,38 @@ void imu_task(void* pvParameters) {
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Handle button 2: Send space ---
+        // --- Handle button 2: Send buffered Morse sequence or space ---
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
-            printf("%c\n", " ");
-            fflush(stdout);
+            if (morse_index > 0) {
+                // Send full Morse sequence
+                printf("%s\n", morse_buffer);
+                fflush(stdout);
 
-            // Double flash to indicate space
-            for (int i = 0; i < 2; i++) {
+                // Simulate holding space button for 1 second
                 gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(1000));
                 gpio_put(LED_PIN, 0);
-                vTaskDelay(pdMS_TO_TICKS(100));
+
+                // Clear buffer
+                morse_index = 0;
+                morse_buffer[0] = '\0';
+            }
+            else {
+                // Buffer empty → just send a space
+                printf(" \n");
+                fflush(stdout);
+
+                // Double flash to indicate space
+                for (int i = 0; i < 2; i++) {
+                    gpio_put(LED_PIN, 1);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    gpio_put(LED_PIN, 0);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                }
             }
         }
-
-        vTaskDelay(pdMS_TO_TICKS(100));
-    }
-}
 
 // --- Main entry point ---
 int main() {
@@ -119,7 +145,7 @@ int main() {
         sleep_ms(10);
     }
 
-    printf("USB connected.\n");
+    printf("USB yhdistetty.\n");
 
     // --- Configure buttons ---
     gpio_init(BUTTON1);
