@@ -12,7 +12,7 @@
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
 
-// -- Morse buffer
+// --- Morse buffer ---
 #define MORSE_BUFFER_SIZE 64
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
@@ -32,7 +32,6 @@ void button_isr(uint gpio, uint32_t events) {
         last_time2 = now;
     }
 }
-
 
 // --- IMU task ---
 void imu_task(void* pvParameters) {
@@ -59,6 +58,10 @@ void imu_task(void* pvParameters) {
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    // Clear Morse buffer
+    morse_index = 0;
+    morse_buffer[0] = '\0';
 
     while (1) {
         char symbol = '\0';
@@ -93,50 +96,67 @@ void imu_task(void* pvParameters) {
             }
         }
 
-        // --- Handle button 1: Send current symbol ---
+        // --- Handle button 1: Add current symbol to buffer ---
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            printf("%c  \n", symbol);
-            fflush(stdout);
+            // Append symbol to buffer
+            if (morse_index < MORSE_BUFFER_SIZE - 1) {
+                morse_buffer[morse_index++] = symbol;
+                morse_buffer[morse_index] = '\0';
+            }
 
+            // Optional: flash LED to indicate symbol added
             gpio_put(LED_PIN, 1);
             vTaskDelay(pdMS_TO_TICKS(150));
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Handle button 2: Send buffered Morse sequence or space ---
-        if (button2_pressed_flag) {
-            button2_pressed_flag = false;
+        // --- Button 2 handling: short press adds space, long press sends buffer ---
+        static uint32_t button2_press_time = 0;
 
-            if (morse_index > 0) {
-                // Send full Morse sequence
-                printf("%s\n", morse_buffer);
-                fflush(stdout);
-
-                // Simulate holding space button for 1 second
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                gpio_put(LED_PIN, 0);
-
-                // Clear buffer
-                morse_index = 0;
-                morse_buffer[0] = '\0';
-            }
-            else {
-                // Buffer empty → just send a space
-                printf(" \n");
-                fflush(stdout);
-
-                // Double flash to indicate space
-                for (int i = 0; i < 2; i++) {
-                    gpio_put(LED_PIN, 1);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                    gpio_put(LED_PIN, 0);
-                    vTaskDelay(pdMS_TO_TICKS(100));
-                }
+        // Check if Button 2 is currently pressed (active-low)
+        if (gpio_get(BUTTON2) == 0) {
+            if (button2_press_time == 0) {
+                // Record the time when button was first pressed
+                button2_press_time = to_ms_since_boot(get_absolute_time());
             }
         }
+        // Button 2 released
+        else if (button2_press_time != 0) {
+            uint32_t press_duration = to_ms_since_boot(get_absolute_time()) - button2_press_time;
+            button2_press_time = 0;
+
+            if (press_duration >= 1000) {
+                // --- Long press: send entire buffer ---
+                if (morse_index > 0) {
+                    printf("%s\n", morse_buffer);
+                    fflush(stdout);
+
+                    // LED feedback
+                    gpio_put(LED_PIN, 1);
+                    vTaskDelay(pdMS_TO_TICKS(500));
+                    gpio_put(LED_PIN, 0);
+
+                    // Clear buffer after sending
+                    morse_index = 0;
+                    morse_buffer[0] = '\0';
+                }
+            }
+            else {
+                // --- Short press: add space to buffer ---
+                if (morse_index < MORSE_BUFFER_SIZE - 1) {
+                    morse_buffer[morse_index++] = ' ';
+                    morse_buffer[morse_index] = '\0';
+                }
+
+                // LED feedback for adding space
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(100));
+                gpio_put(LED_PIN, 0);
+            }
+        }
+    }
 
 // --- Main entry point ---
 int main() {
