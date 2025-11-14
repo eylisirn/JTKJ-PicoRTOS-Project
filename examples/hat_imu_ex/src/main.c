@@ -1,187 +1,207 @@
 #include <stdio.h>
-#include <pico/stdlib.h>
-#include <FreeRTOS.h>
-#include <queue.h>
-#include <task.h>
+#include <string.h>
 #include <math.h>
-#include <tkjhat/sdk.h>
+#include "pico/stdlib.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "tkjhat/sdk.h"
 
-// Flags set by interrupts
-volatile bool button1_flag = false;
-volatile bool button2_flag = false;
-volatile bool send_flag = false;
+// --- Pin configuration ---
+#define LED_PIN     25
 
-// Double-press detection for BUTTON2
-static uint32_t last_btn2_time = 0;
-static bool btn2_first = false;
+// --- Shared flags ---
+volatile bool button1_pressed_flag = false;
+volatile bool button2_pressed_flag = false;
+volatile bool send_message_flag    = false;
 
-// Message buffer
-#define MAX_MSG 256
-char message_buffer[MAX_MSG];
-int message_index = 0;
+// --- Double-press tracking ---
+static uint32_t last_button2_press_time = 0;
+static bool button2_first_press = false;
 
-/*
-    INTERRUPT HANDLER for both buttons.
-    - BUTTON1 → simply sets a flag (add a symbol)
-    - BUTTON2 → checks for single press vs double press
-*/
+// --- Message buffer ---
+#define MESSAGE_BUFFER_SIZE 128
+char message_buffer[MESSAGE_BUFFER_SIZE];
+size_t message_index = 0;
+
+// --- ISR for both buttons ---
 void button_isr(uint gpio, uint32_t events) {
+    static uint32_t last_button1_time = 0;
     uint32_t now = to_ms_since_boot(get_absolute_time());
 
-    if (gpio == BUTTON1) {
-        // Symbol capture request
-        button1_flag = true;
-    }
+    if (gpio == BUTTON1 && (now - last_button1_time > 200)) {
+        button1_pressed_flag = true;
+        last_button1_time = now;
+    } 
     else if (gpio == BUTTON2) {
-        // Check double-press timing (< 400 ms)
-        if (btn2_first && (now - last_btn2_time < 400)) {
-            // Second press → send the full message
-            send_flag = true;
-            btn2_first = false;
-            button2_flag = false;
-        }
-        else {
-            // First press
-            btn2_first = true;
-            button2_flag = true;     // Single press → insert space
-            last_btn2_time = now;
+        if (now - last_button2_press_time < 400 && button2_first_press) {
+            // Detected double-press → send message
+            send_message_flag = true;
+            button2_first_press = false;
+        } else {
+            // Single press → add space
+            button2_first_press = true;
+            button2_pressed_flag = true;
+            last_button2_press_time = now;
         }
     }
 }
 
-/*
-    MAIN IMU TASK:
-    - Reads orientation from ICM42670
-    - Button 1 → Adds "." or "-"
-    - Button 2 → Adds space
-    - Double-press Button 2 → Sends whole buffer via USB
-*/
-void imu_task(void* p) {
+// --- IMU + Message Task ---
+void imu_task(void* pvParameters) {
+    (void)pvParameters;
+
     float ax, ay, az, gx, gy, gz, t;
 
     // Initialize IMU
-    init_ICM42670();
-    ICM42670_start_with_default_values();
-    ICM42670_enable_accel_gyro_ln_mode();
-    ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-    ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+    if (init_ICM42670() == 0) {
+        printf("Valamista! IMU-sensori alustettiin!\n");
+        if (ICM42670_start_with_default_values() != 0) {
+            printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!\n");
+        }
+        int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
+        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
 
-    // LED for signaling (blinks when message is sent)
-    const uint LED_PIN = 25;
+        ICM42670_enable_accel_gyro_ln_mode();
+        ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+    } else {
+        printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
+    }
+
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    for (;;) {
-        // Read accelerometer + gyroscope
+    while (1) {
+        char symbol = '\0';
+
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            float abs_ax = fabsf(ax);
+            float abs_ay = fabsf(ay);
+            float abs_az = fabsf(az);
 
-            /*
-                BUTTON 1 PRESSED:
-                Determine whether user wants "." or "-"
-                based on device tilt.
-            */
-            if (button1_flag) {
-                button1_flag = false;
-
-                float aax = fabsf(ax);
-                float aay = fabsf(ay);
-                float aaz = fabsf(az);
-
-                char symbol = 0;
-
-                // Flat on table → "-"
-                if (aaz > 0.95 && aaz > aax && aaz > aay) {
-                    symbol = '-';
-                }
-                // Tilt in X or Y → "."
-                else if (aax > 0.10 || aay > 0.40) {
-                    symbol = '.';
-                }
-
-                // Add symbol to buffer
-                if (symbol && message_index < MAX_MSG - 1) {
-                    message_buffer[message_index++] = symbol;
-                    message_buffer[message_index] = '\0';
-                    printf("%c", symbol);   // Live output
-                    fflush(stdout);
-                }
+            if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
+                symbol = '-';
+            } else if (abs_ax > 0.10 || abs_ay > 0.40) {
+                symbol = '.';
             }
 
-            /*
-                BUTTON 2 SINGLE PRESS:
-                Insert a space character.
-            */
-            if (button2_flag) {
-                button2_flag = false;
-
-                if (message_index < MAX_MSG - 1) {
-                    message_buffer[message_index++] = ' ';
-                    message_buffer[message_index] = '\0';
-                    printf(" ");
-                    fflush(stdout);
-                }
-            }
-
-            /*
-                BUTTON 2 DOUBLE PRESS:
-                Send the entire buffered message via USB.
-            */
-            if (send_flag) {
-                send_flag = false;
-
-                if (message_index > 0) {
-                    // Send full message with newline
-                    printf("\n%s\n", message_buffer);
-                    fflush(stdout);
-
-                    // Blink LED 3 times to confirm send
-                    for (int i = 0; i < 3; i++) {
-                        gpio_put(LED_PIN, 1);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                        gpio_put(LED_PIN, 0);
-                        vTaskDelay(pdMS_TO_TICKS(100));
-                    }
-
-                    // Clear buffer
-                    message_index = 0;
-                    message_buffer[0] = '\0';
-                }
-                else {
-                    printf("\n");
-                    fflush(stdout);
-                }
+            // Always update display
+            clear_display();
+            if (symbol != '\0') {
+                char text[2] = {symbol, '\0'};
+                write_text(text);
+            } else {
+                write_text(" ");
             }
         }
 
-        // Slight delay for stability
-        vTaskDelay(pdMS_TO_TICKS(20));
+        // --- Button 1: Add current symbol ---
+        if (button1_pressed_flag && symbol != '\0') {
+            button1_pressed_flag = false;
+
+            if (message_index < MESSAGE_BUFFER_SIZE - 1) {
+                message_buffer[message_index++] = symbol;
+                message_buffer[message_index] = '\0';
+                printf("Added symbol: %c (buffer: %s)\n", symbol, message_buffer);
+            }
+
+            gpio_put(LED_PIN, 1);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            gpio_put(LED_PIN, 0);
+        }
+
+        // --- Button 2: Add space ---
+        if (button2_pressed_flag) {
+            button2_pressed_flag = false;
+
+            if (message_index < MESSAGE_BUFFER_SIZE - 1) {
+                message_buffer[message_index++] = ' ';
+                message_buffer[message_index] = '\0';
+                printf("%c\n", "");
+            }
+
+            // LED double blink for space
+            for (int i = 0; i < 2; i++) {
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(80));
+                gpio_put(LED_PIN, 0);
+                vTaskDelay(pdMS_TO_TICKS(80));
+            }
+        }
+
+        // --- Double-press (send message) ---
+        if (send_message_flag) {
+            send_message_flag = false;
+
+            if (message_index > 0) {
+                printf("%s\n", message_buffer);
+
+                // Send the whole buffered message
+                printf("%s\n", message_buffer);  // <-- includes newline
+                fflush(stdout);
+
+                // LED triple blink for send
+                for (int i = 0; i < 3; i++) {
+                    gpio_put(LED_PIN, 1);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                    gpio_put(LED_PIN, 0);
+                    vTaskDelay(pdMS_TO_TICKS(100));
+                }
+
+                // Clear buffer
+                message_index = 0;
+                message_buffer[0] = '\0';
+            }
+            else {
+                printf("(Buffer empty, nothing to send)\n");
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
 
+// --- Main entry point ---
 int main() {
-    // Initialize USB + stdio
     stdio_init_all();
-    while (!stdio_usb_connected()) sleep_ms(10);
+    while (!stdio_usb_connected()) {
+        sleep_ms(10);
+    }
 
-    // Setup Button 1
+    printf("USB connected.\n");
+
+    // --- Configure buttons ---
     gpio_init(BUTTON1);
     gpio_set_dir(BUTTON1, GPIO_IN);
     gpio_pull_up(BUTTON1);
 
-    // Setup Button 2
     gpio_init(BUTTON2);
     gpio_set_dir(BUTTON2, GPIO_IN);
     gpio_pull_up(BUTTON2);
 
-    // Attach interrupts to both buttons
+    // Register interrupts
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     gpio_set_irq_enabled(BUTTON2, GPIO_IRQ_EDGE_FALL, true);
 
-    // Start IMU task
-    TaskHandle_t h;
-    xTaskCreate(imu_task, "IMU", 2048, NULL, 2, &h);
+    // --- Initialize I2C and display ---
+    i2c_init(i2c0, 400 * 1000);
+    gpio_set_function(12, GPIO_FUNC_I2C);
+    gpio_set_function(13, GPIO_FUNC_I2C);
+    gpio_pull_up(12);
+    gpio_pull_up(13);
+    sleep_ms(300);
 
-    // Start FreeRTOS scheduler
+    init_led();
+    init_display();
+    clear_display();
+    write_text("Valamista!");
+    printf("Valamista!\n");
+
+    // --- Start IMU task ---
+    TaskHandle_t hIMUTask = NULL;
+    xTaskCreate(imu_task, "IMUTask", 2048, NULL, 2, &hIMUTask);
+
     vTaskStartScheduler();
     return 0;
 }
