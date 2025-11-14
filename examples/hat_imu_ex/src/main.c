@@ -84,7 +84,7 @@ void imu_task(void* pvParameters) {
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            printf((int)symbol);
+            printf("%c\n", symbol);
             fflush(stdout);
 
             gpio_put(LED_PIN, 1);
@@ -96,7 +96,7 @@ void imu_task(void* pvParameters) {
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
-            printf((int)' ');
+            printf("%c\n", " ");
             fflush(stdout);
 
             // Double flash to indicate space
