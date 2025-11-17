@@ -126,9 +126,9 @@ void imu_task(void* pvParameters) {
 
             // Send the message excluding the two trailing spaces
             printf("%s\n", morse_index - 2, morse_buffer);
-            stdio_flush();
+            
             taskYIELD(); // let USB driver run
-
+            stdio_flush();
             // Optional LED blink to indicate send
             gpio_put(LED_PIN, 1);
             vTaskDelay(pdMS_TO_TICKS(200));
