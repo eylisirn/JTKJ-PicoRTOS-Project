@@ -119,26 +119,32 @@ void imu_task(void* pvParameters) {
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Check for two consecutive spaces at end to send message ---
-        if (morse_index >= 2 &&
-            morse_buffer[morse_index - 1] == ' ' &&
-            morse_buffer[morse_index - 2] == ' ') {
+        // Only send if there is content before the two trailing spaces
 
-            // Send the message excluding the two trailing spaces
-            printf("%s\n", morse_index - 2, morse_buffer);
-            
-            taskYIELD(); // let USB driver run
-            stdio_flush();
-            // Optional LED blink to indicate send
-            gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            gpio_put(LED_PIN, 0);
+        if (morse_index >= 2) {
+   
+            int send_len = morse_index - 2;   // exclude the two trailing spaces
 
-            // Clear buffer
-            morse_index = 0;
-            morse_buffer[0] = '\0';
-        }
+            if (send_len > 0) {
+       
+                char send_buffer[MORSE_BUFFER_SIZE];
+       
+                memcpy(send_buffer, morse_buffer, send_len);
+       
+                send_buffer[send_len] = '\0';
+
+       
+                printf("%s\n", send_buffer);
+                stdio_flush();
+                taskYIELD();
     }
+
+    // Clear buffer completely
+    morse_index = 0;
+    morse_buffer[0] = '\0';
+
+    }
+  }
 }
 
 // --- Main entry point ---
