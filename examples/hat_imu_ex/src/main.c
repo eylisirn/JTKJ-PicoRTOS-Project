@@ -98,58 +98,46 @@ void imu_task(void* pvParameters) {
                 morse_buffer[morse_index] = '\0';
             }
 
-            // Optional: flash LED to indicate symbol added
+            // Flash LED to indicate symbol added
             gpio_put(LED_PIN, 1);
             vTaskDelay(pdMS_TO_TICKS(150));
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Button 2: single press adds space, double press sends buffer ---
-        static uint32_t last_button2_press_time = 0;
-        static uint8_t button2_press_count = 0;
-        const uint32_t DOUBLE_PRESS_INTERVAL = 500; // ms
-
+        // --- Handle button 2: Add a single space ---
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
-            uint32_t now = to_ms_since_boot(get_absolute_time());
 
-        if (now - last_button2_press_time <= DOUBLE_PRESS_INTERVAL) {
-            // Double press detected → send buffer
-            if (morse_index > 0) {
-                printf("%s\n", morse_buffer);
-                stdio_flush();
-
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                gpio_put(LED_PIN, 0);
-
-                morse_index = 0;
-                morse_buffer[0] = '\0';
+            if (morse_index < MORSE_BUFFER_SIZE - 1) {
+                morse_buffer[morse_index++] = ' ';
+                morse_buffer[morse_index] = '\0';
             }
-            button2_press_count = 0;
-        } else {
-            // First press pending
-            button2_press_count = 1;
+
+            // Flash LED to indicate space added
+            gpio_put(LED_PIN, 1);
+            vTaskDelay(pdMS_TO_TICKS(100));
+            gpio_put(LED_PIN, 0);
         }
 
-        last_button2_press_time = now;
-}
+        // --- Check for two consecutive spaces at end to send message ---
+        if (morse_index >= 2 &&
+            morse_buffer[morse_index - 1] == ' ' &&
+            morse_buffer[morse_index - 2] == ' ') {
 
-// Handle single press after interval
-uint32_t now = to_ms_since_boot(get_absolute_time());
-if (button2_press_count == 1 && now - last_button2_press_time > DOUBLE_PRESS_INTERVAL) {
-    // Single press → add space
-    if (morse_index < MORSE_BUFFER_SIZE - 1) {
-        morse_buffer[morse_index++] = ' ';
-        morse_buffer[morse_index] = '\0';
-    }
+            // Send the message excluding the two trailing spaces
+            printf("%s\n", morse_index - 2, morse_buffer);
+            stdio_flush();
+            taskYIELD(); // let USB driver run
 
-    gpio_put(LED_PIN, 1);
-    vTaskDelay(pdMS_TO_TICKS(100));
-    gpio_put(LED_PIN, 0);
+            // Optional LED blink to indicate send
+            gpio_put(LED_PIN, 1);
+            vTaskDelay(pdMS_TO_TICKS(200));
+            gpio_put(LED_PIN, 0);
 
-    button2_press_count = 0;
-}
+            // Clear buffer
+            morse_index = 0;
+            morse_buffer[0] = '\0';
+        }
     }
 }
 
