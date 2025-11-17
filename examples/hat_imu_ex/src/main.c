@@ -109,28 +109,15 @@ void imu_task(void* pvParameters) {
         static uint8_t button2_press_count = 0;
         const uint32_t DOUBLE_PRESS_INTERVAL = 500; // ms
 
-        // Called when Button 2 interrupt triggers
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
-
             uint32_t now = to_ms_since_boot(get_absolute_time());
 
-            if (now - last_button2_press_time <= DOUBLE_PRESS_INTERVAL) {
-                button2_press_count++;
-            }
-            else {
-                button2_press_count = 1;
-            }
-            last_button2_press_time = now;
-        }
-
-        // In your main loop, check for single/double press timeout
-        uint32_t now = to_ms_since_boot(get_absolute_time());
-        if (button2_press_count == 2) {
-            // --- Double press: send buffer ---
+        if (now - last_button2_press_time <= DOUBLE_PRESS_INTERVAL) {
+            // Double press detected → send buffer
             if (morse_index > 0) {
-                printf("%s \n", morse_buffer); // <-- keep space before \n
-                fflush(stdout);
+                printf("%s\n", morse_buffer);
+                stdio_flush();
 
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
@@ -140,21 +127,29 @@ void imu_task(void* pvParameters) {
                 morse_buffer[0] = '\0';
             }
             button2_press_count = 0;
-        }
-        else if (button2_press_count == 1 && now - last_button2_press_time > DOUBLE_PRESS_INTERVAL) {
-            // --- Single press confirmed: add space ---
-            if (morse_index < MORSE_BUFFER_SIZE - 1) {
-                morse_buffer[morse_index++] = ' ';
-                morse_buffer[morse_index] = '\0';
-            }
-
-            gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            gpio_put(LED_PIN, 0);
-
-            button2_press_count = 0;
+        } else {
+            // First press pending
+            button2_press_count = 1;
         }
 
+        last_button2_press_time = now;
+}
+
+// Handle single press after interval
+uint32_t now = to_ms_since_boot(get_absolute_time());
+if (button2_press_count == 1 && now - last_button2_press_time > DOUBLE_PRESS_INTERVAL) {
+    // Single press → add space
+    if (morse_index < MORSE_BUFFER_SIZE - 1) {
+        morse_buffer[morse_index++] = ' ';
+        morse_buffer[morse_index] = '\0';
+    }
+
+    gpio_put(LED_PIN, 1);
+    vTaskDelay(pdMS_TO_TICKS(100));
+    gpio_put(LED_PIN, 0);
+
+    button2_press_count = 0;
+}
     }
 }
 
