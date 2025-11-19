@@ -5,19 +5,19 @@
 #include "task.h"
 #include "tkjhat/sdk.h"
 
-// --- Pin configuration ---
+// --- Pin konfiguraatio ---
 #define LED_PIN     25
 
-// --- Shared flags for buttons ---
+// --- Button flägit ---
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
 
-// --- Morse buffer ---
+// --- Morse bufferi ---
 #define MORSE_BUFFER_SIZE 64
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
 
-// --- ISR for both buttons ---
+// --- Interruptit napeille ---
 void button_isr(uint gpio, uint32_t events) {
     static uint32_t last_time1 = 0;
     static uint32_t last_time2 = 0;
@@ -33,33 +33,29 @@ void button_isr(uint gpio, uint32_t events) {
     }
 }
 
-// --- IMU task ---
+// --- Sensori taski ---
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
 
-    // Initialize IMU
+    // Sensorin käynnistys
     if (init_ICM42670() == 0) {
-        printf("Valamista! IMU-sensori alustettiin!\n");
         if (ICM42670_start_with_default_values() != 0) {
-            printf("Virhe! IMU-sensorin gyroskooppia tai kiihtyvyysanturia ei voitu alustaa!\n");
+            printf("IMU-sensori ei käynnistynyt.\n");
         }
         int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        printf("Gyro: %d\n", _enablegyro);
         int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        printf("Gyro syöte: %d\n", _gyro);
         int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
-        printf("Kiihtyvyys syöte: %d\n", _accel);
     }
     else {
-        printf("Virhe! IMU-sensoria ei voitu alustaa!\n");
+        printf("IMU-sensori ei käynnistynyt.\n");
     }
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
 
-    // Clear Morse buffer
+    // Puhdista morse-bufferi
     morse_index = 0;
     morse_buffer[0] = '\0';
 
@@ -78,7 +74,7 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // --- Update display ---
+            // --- Päivitä LCD-näyttö ---
             clear_display();
             if (morse_index > 0) {
                 write_text(morse_buffer);
@@ -88,23 +84,23 @@ void imu_task(void* pvParameters) {
             }
         }
 
-        // --- Handle button 1: Add current symbol to buffer ---
+        // --- Nappi 1 eli lisää merkki (- tai .) ---
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            // Append symbol to buffer
+            // Lisää merkki bufferiin
             if (morse_index < MORSE_BUFFER_SIZE - 1) {
                 morse_buffer[morse_index++] = symbol;
                 morse_buffer[morse_index] = '\0';
             }
 
-            // Flash LED to indicate symbol added
+            // Väläytä lediä kun kirjain lisätään
             gpio_put(LED_PIN, 1);
             vTaskDelay(pdMS_TO_TICKS(150));
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Handle button 2: Add a single space ---
+        // --- Nappi 2 eli lisää tyhjä väli ---
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
@@ -113,26 +109,26 @@ void imu_task(void* pvParameters) {
                 morse_buffer[morse_index] = '\0';
             }
 
-            // Flash LED to indicate space added
+            // Väläytä lediä kun väli lisätään
             gpio_put(LED_PIN, 1);
             vTaskDelay(pdMS_TO_TICKS(100));
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Check if the buffer ends with two spaces and send the message ---
+        // --- Tarkista loppuuko bufferi kolmeen väliin ja lähetä viesti ---
         if (morse_index >= 3 && morse_buffer[morse_index - 3] == ' ' && morse_buffer[morse_index - 2] == ' ' && morse_buffer[morse_index - 1] == ' ') {
-            // --- Send message if two spaces at the end ---
+            // --- Lähetä viesti jos lopussa on kolme väliä ---
             if (morse_index > 3) {
-                morse_buffer[morse_index - 3] = '\0';  // Remove the trailing spaces
-                printf("%s  \n", morse_buffer);  // Send to serial client
+                morse_buffer[morse_index - 3] = '\0';  // Poista lisätyt välit
+                printf("%s  \n", morse_buffer);  // Lähetä serial clientiin, mutta lisää tunnistukseen tarvittavat välit
                 stdio_flush();
 
-                // Flash LED to indicate message sent
+                // Väläytä LEDit näyttääkseen että viesti lähetettiin
                 gpio_put(LED_PIN, 1);
                 vTaskDelay(pdMS_TO_TICKS(200));
                 gpio_put(LED_PIN, 0);
 
-                // Clear buffer after sending
+                // Puhdista bufferi
                 morse_index = 0;
                 morse_buffer[0] = '\0';
             }
@@ -140,7 +136,7 @@ void imu_task(void* pvParameters) {
     }
 }
 
-// --- Main entry point ---
+// --- Main ---
 int main() {
     stdio_init_all();
     while (!stdio_usb_connected()) {
@@ -149,19 +145,19 @@ int main() {
 
     printf("USB yhdistetty.\n");
 
-    // --- Configure buttons ---
+    // --- Nappi konfiguraatio ---
     gpio_init(BUTTON1);
     gpio_set_dir(BUTTON1, GPIO_IN);
-    gpio_pull_up(BUTTON1);  // active-low
+    gpio_pull_up(BUTTON1);
     gpio_init(BUTTON2);
     gpio_set_dir(BUTTON2, GPIO_IN);
     gpio_pull_up(BUTTON2);
 
-    // Attach interrupts
+    // Yhdistä interruptit
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_isr);
     gpio_set_irq_enabled_with_callback(BUTTON2, GPIO_IRQ_EDGE_FALL, true, &button_isr);
 
-    // --- Initialize I2C and display ---
+    // --- Käynnistä I2C ---
     i2c_init(i2c0, 400 * 1000);
     gpio_set_function(12, GPIO_FUNC_I2C);
     gpio_set_function(13, GPIO_FUNC_I2C);
@@ -175,7 +171,7 @@ int main() {
     write_text("Valamista!");
     printf("Valamista!\n");
 
-    // --- Start IMU FreeRTOS task ---
+    // --- Aloita FreeRTOS IMU Taski ---
     TaskHandle_t hIMUTask = NULL;
     xTaskCreate(imu_task, "IMUTask", 2048, NULL, 2, &hIMUTask);
 
