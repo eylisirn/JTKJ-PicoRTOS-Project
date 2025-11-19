@@ -119,24 +119,23 @@ void imu_task(void* pvParameters) {
             gpio_put(LED_PIN, 0);
         }
 
-        // --- Check for two consecutive spaces at end to send message ---
-        if (morse_index >= 2 &&
-            morse_buffer[morse_index - 1] == ' ' &&
-            morse_buffer[morse_index - 2] == ' ') {
+        // --- Check if the buffer ends with two spaces and send the message ---
+        if (morse_index >= 3 && morse_buffer[morse_index - 3] == ' ' && morse_buffer[morse_index - 2] == ' ' && morse_buffer[morse_index - 1] == ' ') {
+            // --- Send message if two spaces at the end ---
+            if (morse_index > 3) {
+                morse_buffer[morse_index - 3] = '\0';  // Remove the trailing spaces
+                printf("%s  \n", morse_buffer);  // Send to serial client
+                stdio_flush();
 
-            // Send the message excluding the two trailing spaces
-            printf("%s\n", morse_index - 2, morse_buffer);
-            stdio_flush();
-            taskYIELD(); // let USB driver run
+                // Flash LED to indicate message sent
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(200));
+                gpio_put(LED_PIN, 0);
 
-            // Optional LED blink to indicate send
-            gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(200));
-            gpio_put(LED_PIN, 0);
-
-            // Clear buffer
-            morse_index = 0;
-            morse_buffer[0] = '\0';
+                // Clear buffer after sending
+                morse_index = 0;
+                morse_buffer[0] = '\0';
+            }
         }
     }
 }
@@ -184,3 +183,4 @@ int main() {
 
     return 0;
 }
+
