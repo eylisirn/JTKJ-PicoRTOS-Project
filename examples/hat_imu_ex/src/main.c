@@ -41,7 +41,9 @@ void imu_task(void* pvParameters) {
 
     // Sensorin käynnistys
     if (init_ICM42670() == 0) {
-        int start_sensor_with_default_values(void);
+        int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
+        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
     }
     else {
         printf("IMU-sensori ei käynnistynyt.\n");
