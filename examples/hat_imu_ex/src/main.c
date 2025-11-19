@@ -73,9 +73,9 @@ void imu_task(void* pvParameters) {
             else {
                 write_text(" ");
             }
-            vTaskDelay(pdMS_TO_TICKS(20));
         }
         
+        vTaskDelay(pdMS_TO_TICKS(20));
 
         // --- Nappi 1 eli lisää merkki (- tai .) ---
         if (button1_pressed_flag && symbol != '\0') {
