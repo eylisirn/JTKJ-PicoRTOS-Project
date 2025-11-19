@@ -75,6 +75,7 @@ void imu_task(void* pvParameters) {
             clear_display();
             if (morse_index > 0) {
                 write_text(morse_buffer);
+                printf("Tämän hetkinen bufferi: %s\n", morse_buffer)
             }
             else {
                 write_text(" ");
