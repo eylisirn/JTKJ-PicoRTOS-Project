@@ -71,14 +71,28 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // --- Päivitä LCD-näyttö ---
-            clear_display();
+            // --- Päivitä LCD-näyttö vain jos buffer muuttui ---
             if (morse_index > 0) {
-                write_text(morse_buffer);
-                printf("Tämän hetkinen bufferi: %s\n", morse_buffer);
-            }
-            else {
+                char display_buffer[MORSE_BUFFER_SIZE + MORSE_BUFFER_SIZE / LCD_LINE_LENGTH];
+                int disp_idx = 0;
+
+                for (int i = 0; i < morse_index; i++) {
+                    display_buffer[disp_idx++] = morse_buffer[i];
+                    if ((i + 1) % LCD_LINE_LENGTH == 0) {
+                        display_buffer[disp_idx++] = '\n';
+                    }
+                }
+                display_buffer[disp_idx] = '\0';
+
+                if (strcmp(display_buffer, last_display) != 0) {
+                    clear_display();
+                    write_text(display_buffer);
+                    strcpy(last_display, display_buffer);
+                }
+            } else if (last_display[0] != ' ') {
+                clear_display();
                 write_text(" ");
+                strcpy(last_display, " ");
             }
         }
 
