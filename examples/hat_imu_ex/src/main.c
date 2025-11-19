@@ -6,9 +6,6 @@
 #include "task.h"
 #include "tkjhat/sdk.h"
 
-// --- Pin konfiguraatio ---
-#define LED_PIN     25
-
 // --- Button flägit ---
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
@@ -50,9 +47,6 @@ void imu_task(void* pvParameters) {
         printf("IMU-sensori ei käynnistynyt.\n");
     }
 
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-
     // Puhdista morse-bufferi
     morse_index = 0;
     morse_buffer[0] = '\0';
@@ -91,11 +85,6 @@ void imu_task(void* pvParameters) {
                 morse_buffer[morse_index++] = symbol;
                 morse_buffer[morse_index] = '\0';
             }
-
-            // Väläytä lediä kun kirjain lisätään
-            gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(150));
-            gpio_put(LED_PIN, 0);
         }
 
         // --- Nappi 2 eli lisää tyhjä väli ---
@@ -106,11 +95,6 @@ void imu_task(void* pvParameters) {
                 morse_buffer[morse_index++] = ' ';
                 morse_buffer[morse_index] = '\0';
             }
-
-            // Väläytä lediä kun väli lisätään
-            gpio_put(LED_PIN, 1);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            gpio_put(LED_PIN, 0);
         }
 
         // --- Tarkista loppuuko bufferi kolmeen väliin ja lähetä viesti ---
@@ -120,11 +104,6 @@ void imu_task(void* pvParameters) {
                 morse_buffer[morse_index - 3] = '\0';  // Poista lisätyt välit
                 printf("%s  \n", morse_buffer);  // Lähetä serial clientiin, mutta lisää tunnistukseen tarvittavat välit
                 stdio_flush();
-
-                // Väläytä LEDit näyttääkseen että viesti lähetettiin
-                gpio_put(LED_PIN, 1);
-                vTaskDelay(pdMS_TO_TICKS(200));
-                gpio_put(LED_PIN, 0);
 
                 // Puhdista bufferi
                 morse_index = 0;
@@ -163,7 +142,6 @@ int main() {
     gpio_pull_up(13);
     sleep_ms(300);
 
-    init_led();
     init_display();
     clear_display();
     write_text("Valamista!");
