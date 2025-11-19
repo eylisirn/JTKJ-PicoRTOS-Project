@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include <math.h>
 #include "pico/stdlib.h"
 #include "FreeRTOS.h"
@@ -16,7 +15,7 @@ char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
 
 // --- Interruptit napeille ---
-void button_isr(uint gpio, uint32_t events) {
+void button_interrupt(uint gpio, uint32_t events) {
     static uint32_t last_time1 = 0;
     static uint32_t last_time2 = 0;
     uint32_t now = to_ms_since_boot(get_absolute_time());
@@ -131,8 +130,8 @@ int main() {
     gpio_pull_up(BUTTON2);
 
     // Yhdistä interruptit
-    gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_isr);
-    gpio_set_irq_enabled_with_callback(BUTTON2, GPIO_IRQ_EDGE_FALL, true, &button_isr);
+    gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_interrupt);
+    gpio_set_irq_enabled_with_callback(BUTTON2, GPIO_IRQ_EDGE_FALL, true, &button_interrupt);
 
     // --- Käynnistä I2C ---
     i2c_init(i2c0, 400 * 1000);
