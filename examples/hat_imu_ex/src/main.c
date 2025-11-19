@@ -34,16 +34,19 @@ void button_isr(uint gpio, uint32_t events) {
     }
 }
 
-#define LCD_LINE_LENGTH 10  // Wrap line after 10 characters
-
-// IMU Taski
+// --- Sensori taski ---
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
 
     // Sensorin käynnistys
-    if (init_ICM42670() != 0) {
+    if (init_ICM42670() == 0) {
+        int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
+        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+    }
+    else {
         printf("IMU-sensori ei käynnistynyt.\n");
     }
 
@@ -53,8 +56,6 @@ void imu_task(void* pvParameters) {
     // Puhdista morse-bufferi
     morse_index = 0;
     morse_buffer[0] = '\0';
-
-    char last_display[MORSE_BUFFER_SIZE + MORSE_BUFFER_SIZE / LCD_LINE_LENGTH] = "";
 
     while (1) {
         char symbol = '\0';
@@ -71,28 +72,13 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // --- Päivitä LCD-näyttö vain jos buffer muuttui ---
+            // --- Päivitä LCD-näyttö ---
+            clear_display();
             if (morse_index > 0) {
-                char display_buffer[MORSE_BUFFER_SIZE + MORSE_BUFFER_SIZE / LCD_LINE_LENGTH];
-                int disp_idx = 0;
-
-                for (int i = 0; i < morse_index; i++) {
-                    display_buffer[disp_idx++] = morse_buffer[i];
-                    if ((i + 1) % LCD_LINE_LENGTH == 0) {
-                        display_buffer[disp_idx++] = '\n';
-                    }
-                }
-                display_buffer[disp_idx] = '\0';
-
-                if (strcmp(display_buffer, last_display) != 0) {
-                    clear_display();
-                    write_text(display_buffer);
-                    strcpy(last_display, display_buffer);
-                }
-            } else if (last_display[0] != ' ') {
-                clear_display();
+                write_text(morse_buffer);
+            }
+            else {
                 write_text(" ");
-                strcpy(last_display, " ");
             }
         }
 
