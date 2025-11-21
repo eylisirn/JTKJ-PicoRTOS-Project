@@ -14,6 +14,9 @@ volatile bool button2_pressed_flag = false;
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
 
+// --- Uusi flägi viestin lähetykselle ---
+volatile bool message_ready = false;
+
 // --- Interruptit napeille ---
 void button_interrupt(uint gpio, uint32_t events) {
     static uint32_t last_time1 = 0;
@@ -38,15 +41,14 @@ void imu_task(void* pvParameters) {
 
     // Sensorin käynnistys
     if (init_ICM42670() == 0) {
-        int _enablegyro = ICM42670_enable_accel_gyro_ln_mode();
-        int _gyro = ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
-        int _accel = ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+        ICM42670_enable_accel_gyro_ln_mode();
+        ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
     }
     else {
         printf("IMU-sensori ei käynnistynyt.\n");
     }
 
-    // Puhdista morse-bufferi
     morse_index = 0;
     morse_buffer[0] = '\0';
 
@@ -74,15 +76,14 @@ void imu_task(void* pvParameters) {
                 write_text(" ");
             }
         }
-        
+
         vTaskDelay(pdMS_TO_TICKS(20));
 
         // --- Nappi 1 eli lisää merkki (- tai .) ---
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
-            // Lisää merkki bufferiin
-            if (morse_index < MORSE_BUFFER_SIZE - 1) {
+            if (!message_ready && morse_index < MORSE_BUFFER_SIZE - 1) {
                 morse_buffer[morse_index++] = symbol;
                 morse_buffer[morse_index] = '\0';
             }
@@ -92,25 +93,47 @@ void imu_task(void* pvParameters) {
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
-            if (morse_index < MORSE_BUFFER_SIZE - 1) {
+            if (!message_ready && morse_index < MORSE_BUFFER_SIZE - 1) {
                 morse_buffer[morse_index++] = ' ';
                 morse_buffer[morse_index] = '\0';
             }
         }
 
-        // --- Tarkista loppuuko bufferi kolmeen väliin ja lähetä viesti ---
-        if (morse_index >= 3 && morse_buffer[morse_index - 3] == ' ' && morse_buffer[morse_index - 2] == ' ' && morse_buffer[morse_index - 1] == ' ') {
-            // --- Lähetä viesti jos lopussa on kolme väliä ---
-            if (morse_index > 3) {
-                morse_buffer[morse_index - 3] = '\0';  // Poista lisätyt välit
-                printf("%s  \n", morse_buffer);  // Lähetä serial clientiin, mutta lisää tunnistukseen tarvittavat välit
-                stdio_flush();
+        // --- Tarkista loppuuko bufferi kolmeen väliin ---
+        if (!message_ready && morse_index >= 3) {
+            if (morse_buffer[morse_index - 1] == ' ' &&
+                morse_buffer[morse_index - 2] == ' ' &&
+                morse_buffer[morse_index - 3] == ' ') {
 
-                // Puhdista bufferi
-                morse_index = 0;
-                morse_buffer[0] = '\0';
+                if (morse_index > 3) {
+                    morse_buffer[morse_index - 3] = '\0';
+                    message_ready = true;   // Ilmoita toiselle taskille
+                }
             }
         }
+    }
+}
+
+// --- Morse-viestin lähetys taski ---
+void morse_task(void* pvParameters) {
+    (void)pvParameters;
+
+    while (1) {
+
+        if (message_ready) {
+
+            printf("%s  \n", morse_buffer);
+            stdio_flush();
+
+            // Tyhjennä bufferi
+            morse_index = 0;
+            morse_buffer[0] = '\0';
+
+            // Vapauta tila seuraavaa viestiä varten
+            message_ready = false;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -127,6 +150,7 @@ int main() {
     gpio_init(BUTTON1);
     gpio_set_dir(BUTTON1, GPIO_IN);
     gpio_pull_up(BUTTON1);
+
     gpio_init(BUTTON2);
     gpio_set_dir(BUTTON2, GPIO_IN);
     gpio_pull_up(BUTTON2);
@@ -148,12 +172,14 @@ int main() {
     write_text("Valamista!");
     printf("Valamista!\n");
 
-    // --- Aloita FreeRTOS IMU Taski ---
+    // --- FreeRTOS taskit ---
     TaskHandle_t hIMUTask = NULL;
-    xTaskCreate(imu_task, "IMUTask", 2048, NULL, 2, &hIMUTask);
+    TaskHandle_t hMorseTask = NULL;
+
+    xTaskCreate(imu_task, "IMU", 2048, NULL, 2, &hIMUTask);
+    xTaskCreate(morse_task, "MORSE", 1024, NULL, 1, &hMorseTask);
 
     vTaskStartScheduler();
 
     return 0;
 }
-
