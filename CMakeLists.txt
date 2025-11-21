@@ -79,30 +79,6 @@ add_subdirectory(libs/TKJHAT)
 add_subdirectory(libs/usb-serial-debug)
 # If created new libraries, include them here. 
 # You can EDIT it if you add new libraries
-# ===============================================================================================
-
-# DO NOT EDIT: Prepare build to compile the different examples ==================================
-# Add examples if necessary here
-# Uncomment the examples that you want to include in your project.
-#
-# add_subdirectory(examples/hello_blink)
-# add_subdirectory(examples/hello_blink_freertos)
-# add_subdirectory(examples/hello_pico)
-# add_subdirectory(examples/hello_freertos)
-# add_subdirectory(examples/hello_dual_cdc)
-# add_subdirectory(examples/hello_microphone)
-# add_subdirectory(examples/compilation_errors)
-# add_subdirectory(examples/hello_hat)
-# add_subdirectory(examples/hat_example)
-# add_subdirectory(examples/hat_imu_ex)
-# add_subdirectory(examples/hat_imu_cdc_ex)
-# add_subdirectory(examples/hello_serial_client)
-# add_subdirectory(examples/hello_serial_bidirectional_client)
-# add_subdirectory(examples/hat_app)
-#
-# You can edit it if you want to add new examples
-# ==============================================================================================
-
 
 # EDIT: Prepare build to compile the main target (in root src folder) ==========================
 # NOTE: If you are creating some example you would need to include these lines
@@ -111,7 +87,7 @@ add_subdirectory(libs/usb-serial-debug)
 # Add the source files to be compiled
 # If you add the headers in a different directory, you should use: target_include_directories
 add_executable(${MAIN_TARGET} 
-hat_app/src/main.c 
+src/main.c 
 )
 # Links. Add all libraries that application is using. It must at least use the pico_stdlib
 # In addition, for the course project you are using at least:
