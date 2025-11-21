@@ -116,6 +116,7 @@ void imu_task(void* pvParameters) {
 
 // --- Main ---
 int main() {
+    init_hat_sdk();
     stdio_init_all();
     while (!stdio_usb_connected()) {
         sleep_ms(10);
