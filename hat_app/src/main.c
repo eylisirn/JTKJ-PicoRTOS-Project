@@ -9,7 +9,8 @@
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
 
-// Morse bufferi - Yhteinen
+// Morse bufferi - Otto 
+// (AI2) katso tekoäly.txt - osa vastauksen koodista hyodynnettiin myös nappien toiminnoissa
 #define MORSE_BUFFER_SIZE 64
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
@@ -103,7 +104,6 @@ void imu_task(void* pvParameters) {
         }
 
         // Tarkista loppuuko bufferi kolmeen väliin - Yhteinen
-        // (AI2) katso tekoaly.txt - 
         if (!message_ready && morse_index >= 3) {
             if (morse_buffer[morse_index - 1] == ' ' &&
                 morse_buffer[morse_index - 2] == ' ' &&

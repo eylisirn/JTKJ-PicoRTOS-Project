@@ -31,9 +31,222 @@ Tilted → |az| smaller, |ax| or |ay| larger
 🧠 Step 2: Add simple detection logic
 
 Here’s a modified version of your imu_task() with Morse logic built in:
+"void imu_task(void* pvParameters) {
+    (void)pvParameters;
+
+    float ax, ay, az, gx, gy, gz, t;
+
+    // IMU setup
+    if (init_ICM42670() == 0) {
+        printf("ICM-42670P initialized successfully!\n");
+        ICM42670_start_with_default_values();
+        ICM42670_enable_accel_gyro_ln_mode();
+        ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
+        ICM42670_startAccel(ICM42670_ACCEL_ODR_DEFAULT, ICM42670_ACCEL_FSR_DEFAULT);
+    } else {
+        printf("Failed to initialize ICM-42670P.\n");
+    }
+
+    // Optional: Use LED as output indicator
+    const uint LED_PIN = 25; // Onboard LED (Raspberry Pi Pico)
+    gpio_init(LED_PIN);
+    gpio_set_dir(LED_PIN, GPIO_OUT);
+
+    while (1) {
+        if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
+            // Normalize orientation by comparing accelerometer magnitude
+            float abs_ax = (ax > 0) ? ax : -ax;
+            float abs_ay = (ay > 0) ? ay : -ay;
+            float abs_az = (az > 0) ? az : -az;
+
+            // Decide based on which axis dominates
+            if (abs_az > 7.0 && abs_az > abs_ax && abs_az > abs_ay) {
+                // Upright → Dash
+                printf("-\n");
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(600));  // Dash = long signal
+                gpio_put(LED_PIN, 0);
+            } else if (abs_ax > 5.0 || abs_ay > 5.0) {
+                // Tilted → Dot
+                printf(".\n");
+                gpio_put(LED_PIN, 1);
+                vTaskDelay(pdMS_TO_TICKS(200));  // Dot = short signal
+                gpio_put(LED_PIN, 0);
+            } else {
+                // Neutral / between signals
+                vTaskDelay(pdMS_TO_TICKS(100));
+            }
+        } else {
+            printf("Failed to read imu data\n");
+            vTaskDelay(pdMS_TO_TICKS(200));
+        }
+
+        // Space between symbols
+        vTaskDelay(pdMS_TO_TICKS(300));
+    }
+}"
+
+💡 Step 3: Understanding timing and behavior
+Morse Element	Duration	Meaning	IMU orientation
+Dot (·)	200 ms	short	Tilted sideways
+Dash (–)	600 ms	long	Upright
+Pause	300 ms	between symbols	—
+
+This gives a visible and serial output pattern like:
+. - . . -
+
+and a blinking LED synchronized with it.
+
+🧭 Step 4: Optional improvements
+
+Debouncing
+Add a small hysteresis or require the orientation to be stable for a few samples to avoid flickering.
+
+Full Morse message
+You could map sequences to letters (like “.-” = A) and print decoded characters.
+
+Output over GPIO / buzzer
+Instead of printing, toggle a GPIO pin connected to a buzzer or LED for real Morse code output.
+
+Would you like me to extend this into a version that converts the IMU movements into full Morse code letters (e.g., tilt sequences forming A–Z)?
+
 //
 **
 
 ** AI-2
-// Mitä promptia käytettiin?
-// 
+// Viesti: Our project needs a buffer that collects characters inputs, mainly dots, dashes and empty spaces and gathers them before it sends them. We have the buttons setup as well as
+serial-communication, but we need to gather these messages before sending them via the serial communication. How do we make this buffer and then how do we add these characters to the buffer and how do we make sure the message sends?
+
+// Vastaus:
+Below is a simple and reliable pattern you can use to build a character buffer, add characters as they come in, and send the message over serial when it’s complete.
+This approach works for Arduino, embedded C/C++, or any microcontroller environment.
+
+✅ 1. Create a Global Buffer
+
+You need:
+
+An array to hold the characters
+
+An index to track where to write the next character
+
+"#define BUFFER_SIZE 64        // adjust as needed
+char msgBuffer[BUFFER_SIZE];
+int msgIndex = 0;"
+
+✅ 2. Add Characters to the Buffer
+
+Whenever a button is pressed (dot, dash, or space), call a function to add that character.
+
+"void addToBuffer(char c) {
+    if (msgIndex < BUFFER_SIZE - 1) {
+        msgBuffer[msgIndex++] = c;
+        msgBuffer[msgIndex] = '\0';  // keep the string null-terminated
+    }
+}"
+
+Usage:
+
+addToBuffer('.');     // dot
+addToBuffer('-');     // dash
+addToBuffer(' ');     // space
+
+3. Decide When to Send the Message
+
+Most projects do one of these:
+
+Option A — send when a “send” button is pressed
+
+Example: user enters characters, then presses SEND.
+
+"void sendMessage() {
+    Serial.println(msgBuffer);   // send the message
+    msgIndex = 0;                // reset buffer
+    msgBuffer[0] = '\0';         // clear buffer
+}"
+
+Option B — send when buffer is full
+if (msgIndex >= BUFFER_SIZE - 1) {
+    sendMessage();
+}
+
+Option C — send when a timeout occurs
+unsigned long lastCharTime = 0;
+const unsigned long TIMEOUT = 2000;
+
+void loop() {
+    if (msgIndex > 0 && millis() - lastCharTime > TIMEOUT) {
+        sendMessage();
+    }
+}
+
+Every time you add a character, update:
+lastCharTime = millis();
+
+✅ 4. Putting It All Together
+
+Example using Arduino-style input handling:
+"#define BUFFER_SIZE 64
+char msgBuffer[BUFFER_SIZE];
+int msgIndex = 0;
+
+unsigned long lastCharTime = 0;
+const unsigned long TIMEOUT = 2000;
+
+void addToBuffer(char c) {
+    if (msgIndex < BUFFER_SIZE - 1) {
+        msgBuffer[msgIndex++] = c;
+        msgBuffer[msgIndex] = '\0';
+        lastCharTime = millis();     // reset timeout
+    }
+}
+
+void sendMessage() {
+    Serial.print("Sending: ");
+    Serial.println(msgBuffer);
+
+    msgIndex = 0;
+    msgBuffer[0] = '\0';
+}
+
+void loop() {
+    // Example button handling
+    if (dotButtonPressed()) addToBuffer('.');
+    if (dashButtonPressed()) addToBuffer('-');
+    if (spaceButtonPressed()) addToBuffer(' ');
+    if (sendButtonPressed()) sendMessage();
+
+    // Timeout-based auto-send
+    if (msgIndex > 0 && millis() - lastCharTime > TIMEOUT) {
+        sendMessage();
+    }
+
+✅ 5. Confirming the Message Was Sent
+
+If you need two-way serial confirmation, have the receiver send back:
+ACK
+
+Then check for it:
+if (Serial.available()) {
+    String s = Serial.readStringUntil('\n');
+    if (s == "ACK") {
+        Serial.println("Message delivered successfully.");
+    }
+}
+
+✔️ Summary
+Task	How
+Create buffer	char buffer[] + index
+Add characters	addToBuffer()
+Trigger send	button, timeout, or full buffer
+Send message	Serial.println()
+Reset buffer	set index=0, buffer[0]='\0'
+
+If you want, I can create:
+
+✅ A complete Arduino sketch
+✅ A version for STM32 / ESP32 / PIC
+✅ A non-blocking version with state machine
+Just tell me your platform!
+}"
+//
+**
