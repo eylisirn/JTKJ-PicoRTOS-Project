@@ -1,0 +1,39 @@
+﻿// Käytimme tässä projektissä ChatGPT:tä varsinkin alkuvaiheessa. Tässä on selvitykset tekoälyviittauksista koodissamme.
+
+** AI-1
+// Mitä promptia käytettiin?
+// ChatGPT:lle syötettiin kevyesti modifioitu versio hat_imu_ex:sta aiemmassa promptissa ja kysyttiin seuraava kysymys?
+
+// Kysymys: Based on the code I gave you, how would you turn its output into different morse characters? For example, when the IMU-sensor is upright it's sending out a long-signal (-) and when it's on it's side at an angle, it's sending a short-signal (.)?
+
+// Vastaus: Excellent question — that’s a fun and very doable project idea. 🛰️
+Let’s walk through how to modify your FreeRTOS + IMU setup so it outputs Morse code (dot/dash) based on the IMU’s orientation.
+
+🧩 Goal Recap
+
+You already have a task (imu_task) that reads IMU data (ax, ay, az, gx, gy, gz, t).
+You want:
+
+“Dash” (–) → when the IMU is upright (e.g., Z-axis up).
+
+“Dot” (·) → when the IMU is tilted sideways (e.g., X- or Y-axis dominant).
+
+⚙️ Step 1: Define orientation thresholds
+
+We’ll use the accelerometer readings to determine orientation.
+The accelerometer vector (ax, ay, az) measures gravity (~9.81 m/s²).
+So:
+
+Upright → |az| near 9.8
+
+Tilted → |az| smaller, |ax| or |ay| larger
+
+🧠 Step 2: Add simple detection logic
+
+Here’s a modified version of your imu_task() with Morse logic built in:
+//
+**
+
+** AI-2
+// Mitä promptia käytettiin?
+// 

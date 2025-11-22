@@ -39,7 +39,7 @@ void imu_task(void* pvParameters) {
 
     float ax, ay, az, gx, gy, gz, t;
 
-    // Sensorin käynnistys - Eeemeli
+    // Sensorin käynnistys - Eemeli
     if (init_ICM42670() == 0) {
         ICM42670_enable_accel_gyro_ln_mode();
         ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
@@ -56,6 +56,7 @@ void imu_task(void* pvParameters) {
         char symbol = '\0';
 
         /// Päätetään asento, valitaan kirjain - Eemeli
+        /// (AI-1) katso tekoäly.txt — vastausta on ajan kanssa muokattu reilusti
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
             float abs_ax = fabsf(ax);
             float abs_ay = fabsf(ay);
@@ -102,7 +103,7 @@ void imu_task(void* pvParameters) {
         }
 
         // Tarkista loppuuko bufferi kolmeen väliin - Yhteinen
-        // ChatGPT loi tarkistuksen.
+        // (AI2) katso tekoaly.txt - 
         if (!message_ready && morse_index >= 3) {
             if (morse_buffer[morse_index - 1] == ' ' &&
                 morse_buffer[morse_index - 2] == ' ' &&
