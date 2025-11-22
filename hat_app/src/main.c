@@ -83,6 +83,7 @@ void imu_task(void* pvParameters) {
         vTaskDelay(pdMS_TO_TICKS(20));
 
         // Napit - Otto
+        // Osittain hyödynnetty toimintoja (AI2) ohjaamana
         // Nappi 1 eli lisää merkki (- tai .)
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;

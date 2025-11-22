@@ -1,4 +1,5 @@
 ﻿// Käytimme tässä projektissä ChatGPT:tä varsinkin alkuvaiheessa. Tässä on selvitykset tekoälyviittauksista koodissamme.
+// Tekoälyä myös käytettiin selvittämään eri käsitteitä ja ideoita ilman että sille syötettiin projektitietoja. Saatuja vastauksia ei koskaan sovelletu koodin joten niiden dokumentointi on todella vaikeaa ja käsittääksemme asiaankuulumatonta.
 
 ** AI-1
 // Mitä promptia käytettiin?
@@ -111,7 +112,23 @@ Instead of printing, toggle a GPIO pin connected to a buzzer or LED for real Mor
 Would you like me to extend this into a version that converts the IMU movements into full Morse code letters (e.g., tilt sequences forming A–Z)?
 
 //
+
 **
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ** AI-2
 // Viesti: Our project needs a buffer that collects characters inputs, mainly dots, dashes and empty spaces and gathers them before it sends them. We have the buttons setup as well as
@@ -249,4 +266,5 @@ If you want, I can create:
 Just tell me your platform!
 }"
 //
+
 **
