@@ -15,7 +15,7 @@ volatile bool button2_pressed_flag = false;
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
 
-// Uusi flägi viestin lähetykselle - Yhteinen
+// Uusi flägi viestin lähetykselle
 volatile bool message_ready = false;
 
 // Interruptit napeille - Eemeli, Otto
