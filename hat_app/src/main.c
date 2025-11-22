@@ -5,19 +5,19 @@
 #include "task.h"
 #include "tkjhat/sdk.h"
 
-// --- Button flägit ---
+// Button flägit - Otto
 volatile bool button1_pressed_flag = false;
 volatile bool button2_pressed_flag = false;
 
-// --- Morse bufferi ---
+// Morse bufferi - Yhteinen
 #define MORSE_BUFFER_SIZE 64
 char morse_buffer[MORSE_BUFFER_SIZE];
 uint8_t morse_index = 0;
 
-// --- Uusi flägi viestin lähetykselle ---
+// Uusi flägi viestin lähetykselle - Yhteinen
 volatile bool message_ready = false;
 
-// --- Interruptit napeille ---
+// Interruptit napeille - Eemeli, Otto
 void button_interrupt(uint gpio, uint32_t events) {
     static uint32_t last_time1 = 0;
     static uint32_t last_time2 = 0;
@@ -33,13 +33,13 @@ void button_interrupt(uint gpio, uint32_t events) {
     }
 }
 
-// --- Sensori taski ---
+// IMU Sensori — pohjattu imu_hat_ex tiedostosta - Eemeli
 void imu_task(void* pvParameters) {
     (void)pvParameters;
 
     float ax, ay, az, gx, gy, gz, t;
 
-    // Sensorin käynnistys
+    // Sensorin käynnistys - Eeemeli
     if (init_ICM42670() == 0) {
         ICM42670_enable_accel_gyro_ln_mode();
         ICM42670_startGyro(ICM42670_GYRO_ODR_DEFAULT, ICM42670_GYRO_FSR_DEFAULT);
@@ -55,11 +55,12 @@ void imu_task(void* pvParameters) {
     while (1) {
         char symbol = '\0';
 
+        /// Päätetään asento, valitaan kirjain - Eemeli
         if (ICM42670_read_sensor_data(&ax, &ay, &az, &gx, &gy, &gz, &t) == 0) {
             float abs_ax = fabsf(ax);
             float abs_ay = fabsf(ay);
             float abs_az = fabsf(az);
-
+        
             if (abs_az > 0.95 && abs_az > abs_ax && abs_az > abs_ay) {
                 symbol = '-';
             }
@@ -67,7 +68,7 @@ void imu_task(void* pvParameters) {
                 symbol = '.';
             }
 
-            // --- Päivitä LCD-näyttö ---
+            // Päivitä LCD-näyttö - Otto
             clear_display();
             if (morse_index > 0) {
                 write_text(morse_buffer);
@@ -79,7 +80,8 @@ void imu_task(void* pvParameters) {
 
         vTaskDelay(pdMS_TO_TICKS(20));
 
-        // --- Nappi 1 eli lisää merkki (- tai .) ---
+        // Napit - Otto
+        // Nappi 1 eli lisää merkki (- tai .)
         if (button1_pressed_flag && symbol != '\0') {
             button1_pressed_flag = false;
 
@@ -89,7 +91,7 @@ void imu_task(void* pvParameters) {
             }
         }
 
-        // --- Nappi 2 eli lisää tyhjä väli ---
+        // Nappi 2 eli lisää tyhjä väli
         if (button2_pressed_flag) {
             button2_pressed_flag = false;
 
@@ -99,7 +101,8 @@ void imu_task(void* pvParameters) {
             }
         }
 
-        // --- Tarkista loppuuko bufferi kolmeen väliin ---
+        // Tarkista loppuuko bufferi kolmeen väliin - Yhteinen
+        // ChatGPT loi tarkistuksen.
         if (!message_ready && morse_index >= 3) {
             if (morse_buffer[morse_index - 1] == ' ' &&
                 morse_buffer[morse_index - 2] == ' ' &&
@@ -107,14 +110,14 @@ void imu_task(void* pvParameters) {
 
                 if (morse_index > 3) {
                     morse_buffer[morse_index - 3] = '\0';
-                    message_ready = true;   // Ilmoita toiselle taskille
+                    message_ready = true;
                 }
             }
         }
     }
 }
 
-// --- Morse-viestin lähetys taski ---
+// Morse-viestin lähetys taski - Antti
 void morse_task(void* pvParameters) {
     (void)pvParameters;
 
@@ -137,7 +140,7 @@ void morse_task(void* pvParameters) {
     }
 }
 
-// --- Main ---
+// Main - Yhteinen
 int main() {
     stdio_init_all();
     while (!stdio_usb_connected()) {
@@ -146,7 +149,7 @@ int main() {
 
     printf("USB yhdistetty.\n");
 
-    // --- Nappi konfiguraatio ---
+    //  Nappi konfiguraatio - Antti, Otto
     gpio_init(BUTTON1);
     gpio_set_dir(BUTTON1, GPIO_IN);
     gpio_pull_up(BUTTON1);
@@ -155,11 +158,11 @@ int main() {
     gpio_set_dir(BUTTON2, GPIO_IN);
     gpio_pull_up(BUTTON2);
 
-    // Yhdistä interruptit
+    // Yhdistä interruptit - Otto
     gpio_set_irq_enabled_with_callback(BUTTON1, GPIO_IRQ_EDGE_FALL, true, &button_interrupt);
     gpio_set_irq_enabled_with_callback(BUTTON2, GPIO_IRQ_EDGE_FALL, true, &button_interrupt);
 
-    // --- Käynnistä I2C ---
+    // Käynnistä I2C - Eemeli/Yhteinen
     i2c_init(i2c0, 400 * 1000);
     gpio_set_function(12, GPIO_FUNC_I2C);
     gpio_set_function(13, GPIO_FUNC_I2C);
@@ -172,7 +175,7 @@ int main() {
     write_text("Valamista!");
     printf("Valamista!\n");
 
-    // --- FreeRTOS taskit ---
+    // FreeRTOS taskit - Eemeli/Yhteinen
     TaskHandle_t hIMUTask = NULL;
     TaskHandle_t hMorseTask = NULL;
 
